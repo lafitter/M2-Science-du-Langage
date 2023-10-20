@@ -180,6 +180,7 @@ DF <- read.csv("metal_bands.csv", header = T, sep = ";", dec = ".")
 head(DF, n = 4)
 str(DF) # TOUJOURS VERIFIER LE FORMAT DES VARIABLES !
 # View(DF)
+summary(DF)
 # adresse implicite
 paste0(getwd(),"/meta_bands.csv")
 
@@ -428,16 +429,39 @@ library(rstatix)
 
 
 ## Khi-deux d'ajustement
+
+### Répartition niveaux d'études
 ```{r, error=T}
+# install.packages("prettyR")
+library(prettyR)
+
 DF <- readxl::read_xlsx("Xhi-deux.xlsx")
-str(DF);head(DF)
+str(DF);head(DF);summary(DF)
 
 # stat descriptive
-EFFECTIF = table(DF$etude)
-EFFECTIF # effectifs bruts
-EFFECTIF*100/sum(EFFECTIF) # effectifs en pourcentage
+EFFECTIF <- table(DF$etude)
+addmargins(EFFECTIF) # effectifs bruts
 
-graphics::barplot(EFFECTIF)
+EFFECTIF_PROP <- prop.table(EFFECTIF) 
+addmargins(EFFECTIF_PROP) # effectifs en pourcentage
+
+prettyR::describe(DF) # encore plus pratique !
+
+# graphique à barres
+graphics::barplot(EFFECTIF,                  # table d'effectifs
+                  xlab = "Niveaux d'études", # nom axe x
+                  ylab = "Fréquences")       # nom axe y
+
+# graphique camembert
+graphics::pie(EFFECTIF_PROP,                 # table d'effectifs
+              labels = EFFECTIF_PROP,        # table d'effectifs
+              main  = "Niveaux d'études",    # titre
+              col = c("red","blue", "green"))# couleur des tranches
+# rajoute une légende
+legend("topright",                           # position
+       legend=names(EFFECTIF),               # noms de légende
+       fill = c("red","blue", "green"))      # couleurs de légende
+
 
 # stat inférentielle
 # y a t il un effet ?
@@ -448,15 +472,19 @@ KHI$expected
 chisq.test(DF$etude) # ne marche pas
 
 # quelle est la taille de l'effet ?
-# rstatix::cramer_v(EFFECTIF)
 
-# nous pouvons aussi calculer à la main la valeur du V de cramer:
-# sqrt(
-  # (KHI$statistic/nrow(DF))/(length(EFFECTIF)-1))
+install.packages("pwr")
+library(pwr)
+EFFECTIF_H0 = rep(1/length(EFFECTIF),length(EFFECTIF))
+pwr::ES.w1(P0 = EFFECTIF_H0 , P1 = EFFECTIF_PROP)
+# P0 = proba si H0 vrai
+# P1 = proba observées
+```
 
-# sampling distribution
 
-
+Visualisation de la distribution d'échantillonnage du Chi2 d'ajustement
+```{r, error=T}
+# Distribution d'échantillonnage
 hist(rchisq(1000,2),
      # rchisq() simule ici 1000 chi2, si H0 est vrai, et avec 2 ddl
      breaks=100,
@@ -492,5 +520,54 @@ abline(v=KHI$statistic, col = "red", lwd=2)
 # NB : les mathématiciens savent déjà à quoi ressemble la distribution d'échantillonnage du chi2
 curve(dchisq(x, 2), xlim=c(0,15))
 abline(v=KHI$statistic, col = "red", lwd=2)
+```
+
+### Répartition homme/femme
+```{r}
+EFFECTIF <- table(DF$sexe)
+barplot(EFFECTIF)
+binom.test(EFFECTIF)
+```
+
+## Khi-deux d'indépendance
+
+### Dépendance entre sexe et niveau d'étude
+
+```{r}
+# conditions d'application
+EFFECTIF <- table(DF$sexe, DF$etude)
+KHI <- chisq.test(EFFECTIF)
+KHI$expected
+
+# stat descriptives
+EFFECTIF <- table(DF$sexe, DF$etude)
+addmargins(EFFECTIF)
+EFFECTIF_PROP <- prop.table(EFFECTIF)
+addmargins(EFFECTIF_PROP)
+
+# graphiques
+graphics::mosaicplot(EFFECTIF,
+                     main = "",
+                     xlab = "Sexe",
+                     ylab = "Niveau d'étude",
+                     col = c("blue", "red", "green"))
+barplot(EFFECTIF,
+        xlab = "Niveau d'étude",
+        ylab = "Fréquence d'observation",
+        col = c("blue", "red")
+        )
+legend("topright", legend = c("femme", "homme"), fill = c("blue", "red"))
+
+# stat inférentielle
+KHI <- chisq.test(EFFECTIF) 
+KHI
+# NB : correction de Yates quand effectif cellule < 5
+
+# effect size
+# install.packages("rstatix")
+library(rstatix)
+rstatix::cramer_v(EFFECTIF)
+# nous pouvons aussi calculer à la main la valeur du V de cramer:
+sqrt((KHI$statistic/nrow(DF))/(2-1))
 ```
 

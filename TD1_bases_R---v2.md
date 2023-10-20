@@ -410,7 +410,7 @@ getwd()
 ```
 
 ```
-## [1] "C:/Users/remi.DESKTOP-UI81QOM/Desktop/COURS v14chu/6. Stat R analyse linguistique 23-24/COURS"
+## [1] "C:/Users/remi.DESKTOP-UI81QOM/Desktop/VERSIONS PROJETS TT/COURS v15chu/6. Stat R analyse linguistique 23-24/COURS"
 ```
 
 ## Importer le DF *meta_bands*
@@ -443,12 +443,27 @@ str(DF) # TOUJOURS VERIFIER LE FORMAT DES VARIABLES !
 
 ```r
 # View(DF)
+summary(DF)
+```
+
+```
+##  ï..Territory           Bands           Population          Happiness    
+##  Length:174         Min.   :    1.0   Min.   :5.321e+03   Min.   :2.404  
+##  Class :character   1st Qu.:    7.0   1st Qu.:2.712e+06   1st Qu.:4.889  
+##  Mode  :character   Median :   38.0   Median :8.885e+06   Median :5.569  
+##                     Mean   :  523.9   Mean   :4.681e+07   Mean   :5.554  
+##                     3rd Qu.:  285.0   3rd Qu.:3.364e+07   3rd Qu.:6.305  
+##                     Max.   :17557.0   Max.   :1.398e+09   Max.   :7.821  
+##                     NA's   :29        NA's   :29          NA's   :28
+```
+
+```r
 # adresse implicite
 paste0(getwd(),"/meta_bands.csv")
 ```
 
 ```
-## [1] "C:/Users/remi.DESKTOP-UI81QOM/Desktop/COURS v14chu/6. Stat R analyse linguistique 23-24/COURS/meta_bands.csv"
+## [1] "C:/Users/remi.DESKTOP-UI81QOM/Desktop/VERSIONS PROJETS TT/COURS v15chu/6. Stat R analyse linguistique 23-24/COURS/meta_bands.csv"
 ```
 
 ```r
@@ -1472,9 +1487,14 @@ library(rstatix)
 
 ## Khi-deux d'ajustement
 
+### Répartition niveaux d'études
+
 ```r
+# install.packages("prettyR")
+library(prettyR)
+
 DF <- readxl::read_xlsx("Xhi-deux.xlsx")
-str(DF);head(DF)
+str(DF);head(DF);summary(DF)
 ```
 
 ```
@@ -1496,33 +1516,88 @@ str(DF);head(DF)
 ## 6     6 bac     f
 ```
 
+```
+##      sujet          etude               sexe          
+##  Min.   : 1.00   Length:50          Length:50         
+##  1st Qu.:13.25   Class :character   Class :character  
+##  Median :25.50   Mode  :character   Mode  :character  
+##  Mean   :25.50                                        
+##  3rd Qu.:37.75                                        
+##  Max.   :50.00
+```
+
 ```r
 # stat descriptive
-EFFECTIF = table(DF$etude)
-EFFECTIF # effectifs bruts
+EFFECTIF <- table(DF$etude)
+addmargins(EFFECTIF) # effectifs bruts
 ```
 
 ```
 ## 
-##     bac licence  master 
-##      28      10      12
+##     bac licence  master     Sum 
+##      28      10      12      50
 ```
 
 ```r
-EFFECTIF*100/sum(EFFECTIF) # effectifs en pourcentage
+EFFECTIF_PROP <- prop.table(EFFECTIF) 
+addmargins(EFFECTIF_PROP) # effectifs en pourcentage
 ```
 
 ```
 ## 
-##     bac licence  master 
-##      56      20      24
+##     bac licence  master     Sum 
+##    0.56    0.20    0.24    1.00
 ```
 
 ```r
-graphics::barplot(EFFECTIF)
+prettyR::describe(DF) # encore plus pratique !
+```
+
+```
+## Description of DF
+```
+
+```
+## 
+##  Numeric 
+##       mean median   var    sd valid.n
+## sujet 25.5   25.5 212.5 14.58      50
+## 
+##  Factor 
+##          
+## etude     bac master licence
+##   Count    28     12      10
+##   Percent  56     24      20
+## Mode bac 
+##          
+## sexe       f  h
+##   Count   29 21
+##   Percent 58 42
+## Mode f
+```
+
+```r
+# graphique à barres
+graphics::barplot(EFFECTIF,                  # table d'effectifs
+                  xlab = "Niveaux d'études", # nom axe x
+                  ylab = "Fréquences")       # nom axe y
 ```
 
 ![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-36-1.png)<!-- -->
+
+```r
+# graphique camembert
+graphics::pie(EFFECTIF_PROP,                 # table d'effectifs
+              labels = EFFECTIF_PROP,        # table d'effectifs
+              main  = "Niveaux d'études",    # titre
+              col = c("red","blue", "green"))# couleur des tranches
+# rajoute une légende
+legend("topright",                           # position
+       legend=names(EFFECTIF),               # noms de légende
+       fill = c("red","blue", "green"))      # couleurs de légende
+```
+
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-36-2.png)<!-- -->
 
 ```r
 # stat inférentielle
@@ -1568,15 +1643,46 @@ chisq.test(DF$etude) # ne marche pas
 
 ```r
 # quelle est la taille de l'effet ?
-# rstatix::cramer_v(EFFECTIF)
 
-# nous pouvons aussi calculer à la main la valeur du V de cramer:
-# sqrt(
-  # (KHI$statistic/nrow(DF))/(length(EFFECTIF)-1))
+install.packages("pwr")
+```
 
-# sampling distribution
+```
+## Installing package into 'C:/Users/remi.DESKTOP-UI81QOM/Documents/R/win-library/4.0'
+## (as 'lib' is unspecified)
+```
+
+```
+## Error in contrib.url(repos, "source"): trying to use CRAN without setting a mirror
+```
+
+```r
+library(pwr)
+```
+
+```
+## Warning: package 'pwr' was built under R version 4.0.5
+```
+
+```r
+EFFECTIF_H0 = rep(1/length(EFFECTIF),length(EFFECTIF))
+pwr::ES.w1(P0 = EFFECTIF_H0 , P1 = EFFECTIF_PROP)
+```
+
+```
+## [1] 0.4833218
+```
+
+```r
+# P0 = proba si H0 vrai
+# P1 = proba observées
+```
 
 
+Visualisation de la distribution d'échantillonnage du Chi2 d'ajustement
+
+```r
+# Distribution d'échantillonnage
 hist(rchisq(1000,2),
      # rchisq() simule ici 1000 chi2, si H0 est vrai, et avec 2 ddl
      breaks=100,
@@ -1586,7 +1692,7 @@ hist(rchisq(1000,2),
 abline(v=KHI$statistic, col = "red", lwd=2)
 ```
 
-![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-36-2.png)<!-- -->
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-37-1.png)<!-- -->
 
 ```r
 # autre approche : les 300 terriens !
@@ -1618,7 +1724,7 @@ hist(FAUX_CHI,
 abline(v=KHI$statistic, col = "red", lwd=2)
 ```
 
-![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-36-3.png)<!-- -->
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-37-2.png)<!-- -->
 
 ```r
 # NB : les mathématiciens savent déjà à quoi ressemble la distribution d'échantillonnage du chi2
@@ -1626,5 +1732,143 @@ curve(dchisq(x, 2), xlim=c(0,15))
 abline(v=KHI$statistic, col = "red", lwd=2)
 ```
 
-![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-36-4.png)<!-- -->
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-37-3.png)<!-- -->
+
+### Répartition homme/femme
+
+```r
+EFFECTIF <- table(DF$sexe)
+barplot(EFFECTIF)
+```
+
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-38-1.png)<!-- -->
+
+```r
+binom.test(EFFECTIF)
+```
+
+```
+## 
+## 	Exact binomial test
+## 
+## data:  EFFECTIF
+## number of successes = 29, number of trials = 50, p-value = 0.3222
+## alternative hypothesis: true probability of success is not equal to 0.5
+## 95 percent confidence interval:
+##  0.4320604 0.7181178
+## sample estimates:
+## probability of success 
+##                   0.58
+```
+
+## Khi-deux d'indépendance
+
+### Dépendance entre sexe et niveau d'étude
+
+
+```r
+# conditions d'application
+EFFECTIF <- table(DF$sexe, DF$etude)
+KHI <- chisq.test(EFFECTIF)
+```
+
+```
+## Warning in chisq.test(EFFECTIF): Chi-squared approximation may be incorrect
+```
+
+```r
+KHI$expected
+```
+
+```
+##    
+##       bac licence master
+##   f 16.24     5.8   6.96
+##   h 11.76     4.2   5.04
+```
+
+```r
+# stat descriptives
+EFFECTIF <- table(DF$sexe, DF$etude)
+addmargins(EFFECTIF)
+```
+
+```
+##      
+##       bac licence master Sum
+##   f    16       5      8  29
+##   h    12       5      4  21
+##   Sum  28      10     12  50
+```
+
+```r
+EFFECTIF_PROP <- prop.table(EFFECTIF)
+addmargins(EFFECTIF_PROP)
+```
+
+```
+##      
+##        bac licence master  Sum
+##   f   0.32    0.10   0.16 0.58
+##   h   0.24    0.10   0.08 0.42
+##   Sum 0.56    0.20   0.24 1.00
+```
+
+```r
+# graphiques
+graphics::mosaicplot(EFFECTIF,
+                     main = "",
+                     xlab = "Sexe",
+                     ylab = "Niveau d'étude",
+                     col = c("blue", "red", "green"))
+```
+
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-39-1.png)<!-- -->
+
+```r
+barplot(EFFECTIF,
+        xlab = "Niveau d'étude",
+        ylab = "Fréquence d'observation",
+        col = c("blue", "red")
+        )
+legend("topright", legend = c("femme", "homme"), fill = c("blue", "red"))
+```
+
+![](TD1_bases_R---v2_files/figure-docx/unnamed-chunk-39-2.png)<!-- -->
+
+```r
+# stat inférentielle
+KHI <- chisq.test(EFFECTIF) 
+```
+
+```
+## Warning in chisq.test(EFFECTIF): Chi-squared approximation may be incorrect
+```
+
+```r
+KHI
+```
+
+```
+## 
+## 	Pearson's Chi-squared test
+## 
+## data:  EFFECTIF
+## X-squared = 0.64118, df = 2, p-value = 0.7257
+```
+
+```r
+# NB : correction de Yates quand effectif cellule < 5
+
+# effect size
+# install.packages("rstatix")
+library(rstatix)
+# nous pouvons aussi calculer à la main la valeur du V de cramer:
+sqrt((KHI$statistic/nrow(DF))/(length(EFFECTIF)-1))
+```
+
+```
+##  X-squared 
+## 0.05064291
+```
 
