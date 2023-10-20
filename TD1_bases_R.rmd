@@ -1,0 +1,313 @@
+---
+title: "TD1_bases_R"
+output: word_document
+date: "2023-10-11"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = T)
+rm(list = ls()) # efface tous les objets de l'environnement
+```
+
+# Exemple de fonction
+```{r}
+# Fonction-----------
+
+# function with various descriptive statistics
+fxdescribe = function(x){
+  c(obs          = length(x),
+    missing      = sum(is.na(x),na.rm=T),
+    min          = min(x,na.rm=T),
+    max          = max(x,na.rm=T),
+    median       = median(x,na.rm=T),
+    q1           = quantile(x,na.rm=T,c(.25)),
+    q3           = quantile(x,na.rm=T,c(.75)),
+    mean         = mean(x,na.rm=T),
+    sd           = sd(x,na.rm=T),
+    `95lci`      = mean(x,na.rm=T)-(sd(x,na.rm = T)*1.96/sqrt(length(x))),
+    `95hci`      = mean(x,na.rm=T)+(sd(x,na.rm = T)*1.96/sqrt(length(x)))
+    )
+}
+# e.g. = 
+# fxdescribe(c(NA,NA,2,5,6))
+```
+
+
+# Installer un paquet
+```{r eval = F}
+# install.packages("psych") # installe le paquet
+library("psych")          # charge le paquet et ses fonctions
+```
+
+
+# Exemples de commandes
+```{r}
+# Lancer des commandes------------
+
+5+5
+5*2
+20/2
+sqrt(40)
+2^4
+```
+
+# Exercice 1
+```{r}
+# Exercice 1----------
+
+seq(from = 0, to = 100, by = 20)
+c(1:10)*2
+rep(x = c(1,2,3), times = 3)
+rep(x = c(1,2,3), times = 3, each = 3)
+sum(1:3)
+sum(is.na(c(NA,NA,1,NA)))
+plot(x = c(1,2,3), y = c(4,5,6))
+boxplot(1:100)
+summary(c(1,8,9,7))
+```
+
+# Exercice 2
+```{r}
+# Exercice 2----------
+
+nom_vache1 <- "marguerite"
+nom_vache1
+(nom_vache1 <- "marguerite") # quelle différence observez-vous ?
+
+nombre_vache_par_champ <- c(1,5,4,2) # c signifie "combine"
+nombre_vache_par_champ
+print(nombre_vache_par_champ) # print est généralement superflu
+names(nombre_vache_par_champ) <- c("champ1", "champ2", "champ3", "champ4") # donne des noms pour chaque champ
+nombre_vache_par_champ
+
+mean(nombre_vache_par_champ)
+median(nombre_vache_par_champ)
+sd(nombre_vache_par_champ)
+```
+
+# Objet simple
+```{r}
+objet1 <- 10
+objet2 <- "Michel est dans le garage"
+
+objet1
+objet2
+```
+
+
+# Vecteur
+```{r}
+# Vecteur--------------
+
+nom_vaches <- c("marguerite","zoé", "léa")
+str(nom_vaches)
+# characters
+
+nombres_vaches <- c(1:3) 
+str(nombres_vaches)
+# integers (chiffres ronds)
+
+nombres_vaches <- c(1:3/pi) 
+str(nombres_vaches)
+# numeric (chiffres à virgules)
+
+# les données doivent être du même type 
+noms_et_nombres_vaches = c(nom_vaches, nombres_vaches)
+noms_et_nombres_vaches
+
+# changer noms d'un vecteur
+
+nombre_vache_par_champ <- c(1,5,4,2) 
+names(nombre_vache_par_champ) <- c("champ1", "champ2", "champ3", "champ4") # donne des noms pour chaque champ
+nombre_vache_par_champ
+```
+
+# Facteur
+```{r}
+nom_vaches <- c("marguerite","zoé", "léa")
+nom_vaches <- as.factor(nom_vaches)
+nom_vaches
+
+```
+
+
+# Matrice
+```{r}
+# Matrice--------------
+# exemple de matrice avec deux vecteurs
+
+v1 <- c(1,5,4,2,5,6)
+v2 <- c(0,5,7,2,0,5)
+# on combine ces deux vecteurs avec la fonction cbind() 
+# qui veut dire : column bind (combiner colonnes)
+MAT <- cbind(v1,v2)
+MAT
+```
+
+# DataFrame
+```{r}
+# DataFrame--------------
+v3 <- c("a","a","b","b","c","c")
+DF <- data.frame(v1,v2,v3)
+DF
+```
+
+# Liste
+```{r}
+# Liste--------------
+LS <- list(nom_vaches, MAT, DF)
+LS
+```
+
+# Exercice 3
+```{r}
+animaux <- c("koala", "chat", "poule", "serpent")
+pays    <- c("chine", "japon", "irlande", "canada")
+poids   <- c(10,4,3,1)
+(MAT <- matrix(cbind(animaux,pays)))
+(DF  <- data.frame(animaux, pays, poids))
+(LS   <- list(animaux, DF))
+```
+
+# Importation des données
+
+Connaître son répertoire de travail :
+```{r}
+getwd()
+```
+
+Lire ReadingSkills à partir d'un sous-fichier
+```{r}
+ReadingSkills = readxl::read_xlsx("ReadingSkills/ReadingSkills.xlsx")
+```
+
+
+```{r eval = F}
+# with csv file
+ReadingSkills <- read.csv2("C:/Users/rlafitte/Desktop/COURS v7chu/6. Stat R analyse linguistique 23-24/COURS/ReadingSkills.csv")
+# View(ReadingSkills)
+
+# read.csv2("ReadingSkills.csv")
+# read.csv("ReadingSkills.csv", sep = ";")
+
+# with excel file
+# install.packages("readxl") # procède à l'installation ; à ne faire qu'une fois
+library(readxl) # procède au chargement de la librairie ; à faire tout le temps
+ReadingSkills <- readxl::read_xlsx("ReadingSkills.xlsx")
+
+```
+
+# Visualiser les données importées
+```{r eval = T}
+head(ReadingSkills, n = 6) # affiche les 6 premières lignes
+str(ReadingSkills)         # affiche le format de chaque colonne (variable) 
+summary(ReadingSkills)   # stats descriptives pour chaque colonne
+```
+# Exercice 4
+
+Importez le fichier "lexdec.csv" disponible sur https://github.com/lafitter/M2-Science-du-Langage
+
+Examinez le type de variables composant ce DF ; voyez vous quelle erreur s'est glissée ?!
+
+
+```{r}
+DF=read.csv2("lexdec.csv")
+# dataframe lexdec : Lexical decision latencies elicited from 21 subjects for 79 English concrete nouns, with variables linked to subject or word
+str(DF)
+```
+
+La catégorie Frequency est codée en *caractère* et non pas en *numérique* ! :-C
+
+**Voici l'astuce pour y remédier** :
+
+```{r}
+DF=read.csv2("lexdec.csv", na.strings = c("NA","pas fini"))
+str(DF)
+```
+
+# Objet et environnement
+```{r}
+# rm(list = ls()) # vide TOUT l'environnement (rm = remove)
+rm(objet1)        # supprime un objet
+ls()              # liste des objets
+ls(".GlobalEnv")  # liste des objets (idem)
+search()          # montre environnement et paquets
+```
+
+Extraire une variable d'un DF (ReadingSkill)
+```{r error=TRUE}
+head(ReadingSkills)
+accuracy                   # ne fonctionne pas...
+ReadingSkills$accuracy     # fonctionne !
+ReadingSkills["accuracy"]  # fonctionne !
+ReadingSkills[,"accuracy"] # fonctionne !
+```
+
+Transformer ReadingSkills en environnement
+```{r}
+attach(ReadingSkills) # transforme le DF en environnement
+search()
+accuracy
+detach(ReadingSkills) # dé-transforme le DF en simple DF
+```
+
+# Exercice 5
+```{r}
+accuracy = "papi"
+attach(ReadingSkills) 
+accuracy
+print(accuracy)
+attach(ReadingSkills) 
+attach(ReadingSkills) 
+search()
+detach(ReadingSkills) 
+detach(ReadingSkills) 
+search()
+```
+
+# Coordonnées
+
+Vecteur
+```{r}
+nom_vaches <- c("marc","jacques", "timéo")
+nom_vaches[1]
+```
+
+Dataframe
+
+Comment extraire la 2ème ligne du DF ?
+Comment extraire la 2ème colonne du DF ?
+```{r}
+DF <- as.data.frame(ReadingSkills)
+DF[2,]
+DF[,2] # renvoie un vecteur
+DF[2]  # renvoie un DF
+```
+
+
+Comment extraire la 2ème valeur de la variable iq ?
+
+```{r}
+DF[2,"iq"]
+DF[2,3]
+DF$iq[2]
+attach(DF)
+iq[2]
+detach(DF)
+```
+
+Filtrer des données
+```{r, results=F}
+
+# différentes stratégies pour créer un DF avec seulement dyslexia et iq :
+(DFiq <- DF[c("dyslexia","iq")] )
+(DFiq <- DF[c(2,3)])
+(DFiq <- DF[2:3])
+(DFiq <- DF[,-c(1)])
+
+(DFsujet_1_et_3 <- DF[c(1,3),])
+(DFsans_sujet_4 <- DF[-4,])
+```
+
