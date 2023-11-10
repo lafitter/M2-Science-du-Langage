@@ -63,7 +63,10 @@ summary(c(1,8,9,7))
 # Installer un paquet
 ```{r eval = F}
 install.packages("psych")   # installe le paquet
-library("psych")            # charge le paquet et ses fonctions
+library("psych") # charge le paquet et ses fonctions
+# psych::
+library(RePsychLing)
+head(RePsychLing::poems)
 ```
 
 # Création d'objet
@@ -133,10 +136,17 @@ MAT <- cbind(vache,couleur)
 MAT
 ```
 
+```{r}
+MAT2 <- cbind(vache,couleur)
+rbind(MAT,MAT2)
+```
+
+
 ## DataFrame
 ```{r}
 DF <- data.frame(vache,couleur,poids)
 DF
+str(DF)
 ```
 
 ## Liste
@@ -159,12 +169,12 @@ LS
 # Exercice 3
 ```{r}
 # exemple :
-# animaux <- c("koala", "chat", "poule", "serpent")
-# pays    <- c("chine", "japon", "irlande", "canada")
-# poids   <- c(10,4,3,1)
-# (MAT <- matrix(cbind(animaux,pays)))
-# (DF  <- data.frame(animaux, pays, poids))
-# (LS   <- list(animaux, DF))
+animaux <- c("koala", "chat", "poule", "serpent")
+pays    <- c("chine", "japon", "irlande", "canada")
+poids   <- c(10,4,3,1)
+(MAT <- matrix(cbind(animaux,pays)))
+(DF  <- data.frame(animaux, pays, poids))
+(LS   <- list(animaux, DF))
 ```
 
 # Importation des données
