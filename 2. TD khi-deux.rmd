@@ -1,0 +1,146 @@
+---
+title: "TD2 Khi-deux"
+output:
+  word_document:
+    keep_md: yes
+date: "2023-30-11"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE,dpi =600}
+knitr::opts_chunk$set(echo = TRUE, results = T)
+rm(list = ls()) # efface tous les objets de l'environnement
+```
+
+## Khi-deux d'ajustement
+
+### Répartition niveaux d'études
+```{r, error=T}
+# install.packages("prettyR")
+library(prettyR)
+
+DF <- readxl::read_xlsx("Xhi-deux.xlsx")
+str(DF);head(DF);summary(DF)
+
+# stat descriptive
+EFFECTIF <- table(DF$etude)
+addmargins(EFFECTIF) # effectifs bruts
+
+EFFECTIF_PROP <- prop.table(EFFECTIF) 
+addmargins(EFFECTIF_PROP) # effectifs en pourcentage
+
+prettyR::describe(DF) # encore plus pratique !
+
+# graphique à barres
+graphics::barplot(EFFECTIF,                  # table d'effectifs
+                  xlab = "Niveaux d'études", # nom axe x
+                  ylab = "Fréquences")       # nom axe y
+
+# graphique camembert
+graphics::pie(EFFECTIF_PROP,                 # table d'effectifs
+              labels = EFFECTIF_PROP,        # table d'effectifs
+              main  = "Niveaux d'études",    # titre
+              col = c("red","blue", "green"))# couleur des tranches
+# rajoute une légende
+legend("topright",                           # position
+       legend=names(EFFECTIF),               # noms de légende
+       fill = c("red","blue", "green"))      # couleurs de légende
+
+
+# stat inférentielle
+# la répartition observée diffère t-elle significativement de la répartition théorique ?
+KHI = stats::chisq.test(EFFECTIF)
+KHI$observed # fréquences observées
+KHI$expected # fréquences théoriques
+KHI # p valeur
+
+# NB : attention à mettre en argument une TABLE d'effectif
+# chisq.test(DF$etude) # avec un vecteur ça ne marche pas
+```
+
+### Répartition homme/femme
+
+Ici on utilise un test binomial car la variable nominale *sexe* n'a que deux catégories. 
+
+```{r}
+# stat descriptive
+(EFFECTIF <- table(DF$sexe))
+prettyR::describe(DF$sexe)
+barplot(EFFECTIF)
+# stat inférentielle
+# la répartition observée diffère t-elle significativement de la répartition théorique (50%-50%) ?
+binom.test(EFFECTIF) # p valeur
+```
+
+## Khi-deux d'indépendance
+
+### Dépendance entre sexe et niveau d'étude
+
+```{r}
+DF <- readxl::read_xlsx("Xhi-deux.xlsx")
+
+# stat descriptives
+EFFECTIF <- table(DF$sexe, DF$etude)
+addmargins(EFFECTIF)
+EFFECTIF_PROP <- prop.table(EFFECTIF)
+addmargins(EFFECTIF_PROP)
+
+graphics::mosaicplot(EFFECTIF,
+                     main = "",
+                     xlab = "Sexe",
+                     ylab = "Niveau d'étude",
+                     col = c("blue", "red", "green"))
+barplot(EFFECTIF,
+        xlab = "Niveau d'étude",
+        ylab = "Fréquence d'observation",
+        col = c("#ddddff", "red"),
+        border = "black"
+        )
+legend("topright", legend = c("femme", "homme"), fill = c("blue", "red"))
+
+# stat inférentielle
+# est ce que la répartition des niveaux d'études diffère EN FONCTION du sexe ?
+# OU
+# est ce que la répartition du sexe diffère EN FONCTION des niveaux d'études ?
+# ces deux questions sont permutables dans le test du khi-deux
+
+KHI <- chisq.test(EFFECTIF) 
+# Warning : Chi-squared approximation may be incorrect
+# ce message apparaît quand certains effectifs théoriques sont < 5. Ca n'est pas un problème car la fonction chisq.test applique une correction statistique quand c'est le cas.
+KHI # p valeur
+```
+
+# Exercice 5
+
+A vous !
+
+## importe les données
+```{r}
+DF = readxl::read_xlsx("Xhi-deux_exo.xlsx")
+head(DF) ; str(DF) ; summary(DF)
+```
+
+## test binomial
+```{r}
+library(prettyR)
+prettyR::describe(DF$aime_coriandre)
+EFFECTIF = table(DF$aime_coriandre)
+barplot(EFFECTIF);pie(EFFECTIF)
+binom.test(EFFECTIF)
+```
+
+## khi-deux d'ajustement
+```{r}
+prettyR::describe(DF$opinion_politique)
+EFFECTIF = table(DF$opinion_politique)
+barplot(EFFECTIF);pie(EFFECTIF)
+chisq.test(EFFECTIF)
+```
+
+## khi-deux d'indépendance
+```{r}
+(EFFECTIF = table(DF$opinion_politique,DF$aime_coriandre))
+mosaicplot(EFFECTIF,col = c(2,4))
+chisq.test(EFFECTIF)
+```
