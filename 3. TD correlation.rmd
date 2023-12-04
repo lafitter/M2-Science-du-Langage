@@ -1,0 +1,273 @@
+---
+title: "3. TD Corrélation"
+output:
+  word_document:
+    keep_md: yes
+date: "2023-10-11"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE,dpi = 1000}
+knitr::opts_chunk$set(echo = TRUE, results = T, dpi = 800, warning=F)
+rm(list = ls()) # efface tous les objets de l'environnement
+```
+
+# Corrélation
+```{r}
+DF <- readxl::read_xlsx("metal_bands.xlsx")
+head(DF); summary(DF) ; str(DF)
+# 174 pays
+DF_stat <- na.omit(DF[c("Territory","Bands","Happiness")])
+# OU
+DF_stat <- na.omit(DF)
+str(DF_stat) # 117 pays
+```
+
+## Représentation graphique
+```{r}
+attach(DF_stat) # permet de se passer du $
+plot(x=Bands, y = Happiness,
+     col = FALSE,cex=1.5,pch = 21, bg = "green",
+     xlab = "Nombre de groupes de métal", ylab = "Echelle de bonheur (unité arbitraire)")
+abline(v = mean(Bands),h=mean(Happiness), lty = "dashed", col = "blue", lwd = 1.5)
+
+# text(x=Bands, y = Happiness, labels= Territory,
+#      cex=0.6)
+CORR_MOD <- lm(Happiness ~ Bands) # crée un modèle linéaire (ici régression simple) afin d'estimer la droite de régression qui passe par les points
+abline(CORR_MOD, col = "blue", lwd=2) # on se sert du modèle linéaire pour afficher la droite
+detach(DF_stat)
+```
+
+## Absence d'outliers
+
+On peut utiliser des boxplots univariés et bivariés
+```{r, fig.width = 6, fig.height= 4.5}
+boxplot(DF_stat[c("Happiness")], ylab = "Echelle de bonheur (unité arbitraire)",
+         horizontal=T)
+boxplot(DF_stat[c("Bands")], ylab = "Nombre de groupes de métal",
+        horizontal=T)
+```
+
+On peut utiliser un boxplot bivarié:
+
+```{r}
+# install.packages(DescTools)
+library(DescTools)
+# si ne marche pas, essayer :
+# install.packages("aplpack")
+library(aplpack)
+
+
+DescTools::PlotBag(x=DF_stat$Bands, y = DF_stat$Happiness,
+                   cex = 1,
+                   xlab = "Nombre de groupes de métal",
+                   ylab = "Echelle de bonheur (unité arbitraire)")
+
+
+aplpack::bagplot(x=DF_stat$Bands, y = DF_stat$Happiness,
+                   cex = 1,
+                   xlab = "Nombre de groupes de métal",
+                   ylab = "Echelle de bonheur (unité arbitraire)")
+```
+
+La partie bleue foncée repréente un "sac" (bag) capturant 50% des données ; ensuite le sac est grossi 3 fois (la barrière, non plotée) ; les observation en rouge  sont en dehors de ce sac
+
+Comme nous n'avons pas effectué de pré-enregistrement, il nous donc conduire deux analyses : une avec les outliers, une sans les outliers.
+
+### Analyse sans outliers 
+
+```{r}
+DF_stat[DF_stat$Bands>5000,] # noms des outliers
+# enlève outlier
+DF_stat2 <- DF_stat[!DF_stat$Territory %in%  c("United States","Germany"),]
+# ou
+DF_stat2 <- DF_stat[DF_stat$Bands<5000,]
+```
+
+#### Graphiques de comparaison avec vs sans outlier
+
+```{r, dpi = 1000}
+CORR_MOD2 <- lm(Happiness ~ Bands,DF_stat2) # modèle linéaire pour construire la droite de régression
+
+plot(x=DF_stat2$Bands, y = DF_stat2$Happiness,
+     col = "violet",cex=1.5,
+     xlab = "Nombre de groupes de métal", ylab = "Echelle de bonheure (unité arbitraire)")
+abline(CORR_MOD, col = "blue", lwd=2)
+abline(CORR_MOD2, col = "red", lwd=2)
+```
+
+Le graphique confirme bien que les 2 outliers faisaient pencher la pente vers le bas
+
+
+Il faut aussi vérifier la condition de normalité des distributions des variables x et y
+
+#### Normalité des distributions des variables
+
+##### Boîtes à moustaches (boxplots)
+
+```{r fig.width = 4, fig.height= 3}
+boxplot(DF_stat2$Bands, horizontal = T, main = "nombres de groupes de métal")
+boxplot(DF_stat2$Happiness, horizontal = T, main = "bonheur ressenti")
+```
+
+##### Histogrammes
+
+Histogrammes des fréquences brutes
+```{r}
+hist(DF_stat2$Bands)
+# on peut aussi jouer sur le nombre de bandes :
+hist(DF_stat2$Bands, breaks = 20)
+```
+
+Histogrammes de densité sur données centrées-réduites
+```{r}
+hist(scale(DF_stat2$Bands),prob=T, 
+     xlim = c(-4,4),
+     ylim = c(0,0.8))
+curve(dnorm(x),add=T,lwd=2)
+
+hist(scale(DF_stat2$Happiness),prob=T, xlim = c(-4,4), ylim = c(0,0.8))
+curve(dnorm(x),add=T, lwd=2)
+```
+
+Tests statistiques (Shapiro-Wilk et Kolmogorov-Smirnov)
+```{r}
+shapiro.test(DF_stat2$Bands)
+ks.test(scale(DF_stat2$Bands),"pnorm",mean=0,sd =1)
+
+shapiro.test(DF_stat2$Happiness)
+ks.test(scale(DF_stat2$Happiness),"pnorm",mean=0,sd =1)
+```
+
+La variable Bands n'est pas distribuée normalement ; cela se voit graphiquement et c'est même confirmé par les tests statistiques.
+
+A ce stade soit on abandonne la corrélation de Pearson pour utiliser à la place la corrélation de Spearman, soit on essaye de transformer la variable Bands pour qu'elle devienne "normale".
+
+Nous allons faire les deux.
+
+#### La transformation de données
+
+Il est possible de **transformer** une variable pour la forcer à devenir normale. C'est possible notamment via la transformation dite de Box-Cox, disponible dans la librairie  `r "car"`. La méthode de Box-Cox nécessite de trouver une valeur mathématique, appelée **Lambda**, qui *maximise* l'efficacité de la transformation.
+
+```{r}
+# install.packages("car")
+library(car)
+LAMBDA <- car::powerTransform(DF_stat2$Bands ~ 1) # trouve lambda
+hist(car::bcPower(U = DF_stat2$Bands, lambda = LAMBDA$lambda)) # visualise la variable Bands après transformation
+DF_stat2$Bands_BOXCOX <- car::bcPower(DF_stat2$Bands, LAMBDA$lambda) # crée une nouvelle variable dans le DF
+
+# on revérifie quand même que la nouvelle variable est normale, ce qui est le cas
+boxplot(scale(DF_stat2$Bands_BOXCOX), horizontal = T)
+hist(scale(DF_stat2$Bands_BOXCOX),prob=T, ylim = c(0,0.6))
+curve(dnorm(x),add=T, lwd=2, col = "red")
+ks.test(scale(DF_stat2$Bands_BOXCOX),mean=0,sd=1, "pnorm")
+```
+
+La transformation de Box-Cox est ici très efficace. On peut donc enfin calculer la corrélation de Pearson, avec la fonction stats::cor()
+
+```{r}
+stats::cor(x = DF_stat2$Happiness, y = DF_stat2$Bands_BOXCOX, method = "pearson")
+```
+
+Cette corrélation est-elle généralisable à la population ? Peut on rejeter l'hypothèse nulle selon laquelle la corrélation = 0 dans la population ?
+
+```{r}
+cor.test(x = DF_stat2$Happiness, y = DF_stat2$Bands_BOXCOX, method = "pearson")
+```
+
+OUI on rejette H0. 
+
+Maintenant regardons si nos conclusions sont toujours les mêmes quand on utilise un test robuste aux outliers, et qui ne nécessite pas l'assomption de normalité des distributions.
+
+### Analyse avec outlier : la corrélation de Spearman
+
+La corrélation de Spearman équivait à effectuer une corrélation de Pearson sur des variables transformées en rangs.
+
+```{r}
+# ce DF montre le rang corresopondant à chaque valeur de Bands
+data.frame(DF_stat$Bands, RANK = rank(DF_stat$Bands)) 
+# on peut le plotter aussi
+plot(x = DF_stat$Bands, y = rank(DF_stat$Bands),
+     ylab = "rank", xlab = "Bands")
+# on peut faire la même chose avec Happiness
+```
+
+Les fonctions utilisées sont les mêmes, on change juste la méthode : 
+
+```{r}
+cor(x = DF_stat$Happiness, y = DF_stat$Bands, method="spearman")
+cor.test(x = DF_stat$Happiness, y = DF_stat$Bands, method="spearman")
+```
+
+Les résultats sont similaires. On rejette H0 quelque soit le test utilisé.
+
+### Exercice 6
+```{r}
+# importe le DF : attention au séparateur...
+DF <- read.csv("reading_skills2.csv",sep = ";")
+str(DF);summary(DF) # infos sur le DF
+attach(DF) 
+
+# relation entre age et iq : d'abord le plot
+plot(iq,age)
+COR_MOD = lm(age~iq)
+abline(COR_MOD,col="blue")
+
+# tester assomptions : outliers ?
+library(DescTools)
+library(aplpack) # choisissez la librairie qui marche pour vous
+DescTools::PlotBag(iq,age) # pas d'outlier
+
+# tester assomptions : normalité des variables ?
+hist(iq, breaks=10)
+hist(age, breaks=10)
+# possibilité de faire des histogrammes de densité également
+
+boxplot(iq)
+boxplot(age)
+
+ks.test(scale(iq),"pnorm",mean=0,sd =1)
+ks.test(scale(age),"pnorm",mean=0,sd =1)
+
+# les assomptions sont respectées, on utilise le Pearson
+cor.test(iq,age,method="pearson")
+```
+
+```{r}
+# importe le DF : attention au séparateur...
+DF <- read.csv("reading_skills2.csv",sep = ";")
+str(DF);summary(DF) # infos sur le DF
+attach(DF) 
+
+# relation entre age et iq : d'abord le plot
+plot(iq,accuracy)
+COR_MOD = lm(accuracy~iq)
+abline(COR_MOD,col="blue")
+
+# tester assomptions : outliers ?
+library(DescTools)
+DescTools::PlotBag(iq,accuracy) # pas d'outlier
+
+# tester assomptions : normalité des variables ?
+hist(iq, breaks=10)
+hist(accuracy, breaks=10)
+
+boxplot(iq)
+boxplot(accuracy)
+
+ks.test(scale(iq),"pnorm",mean=0,sd =1)
+ks.test(scale(accuracy),"pnorm",mean=0,sd =1)
+
+# les assomptions ne sont pas ok !
+# on va essayer de transformer accuracy
+
+accuracy_lambda = car::powerTransform(accuracy ~1)
+accuracy_boxcox = car::bcPower(accuracy,accuracy_lambda$lambda)
+boxplot(accuracy_boxcox)
+hist(accuracy_boxcox, breaks=10)
+
+# la transformation a échoué... on doit donc faire le test de spearman.
+cor.test(iq,accuracy,method="spearman")
+```
+
