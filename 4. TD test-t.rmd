@@ -1,0 +1,279 @@
+---
+title: "4. TD t de Student"
+output:
+  word_document:
+    keep_md: yes
+  html_document:
+    df_print: paged
+date: "2023-10-11"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE,dpi = 1000}
+knitr::opts_chunk$set(echo = TRUE, results = T, dpi = 800, warning=F)
+rm(list = ls()) # efface tous les objets de l'environnement
+```
+
+# Dataset
+
+```{r}
+DF <- readxl::read_xlsx("perception.xlsx")
+DF # montre le DF
+str(DF) # format des variables ok
+summary(DF) # pas de NAs
+```
+
+# test t pour échantillon unique
+
+## Stat descriptives
+
+```{r}
+# indice de tendances centrales (moyenne et médiane)
+summary(DF$iq)
+# indice de dispersion
+sd(DF$iq)
+quantile(x = DF$iq, probs = c(0.25, 0.75))
+# graphique
+boxplot(DF$iq, horizontal = T)
+graphics::stripchart(DF$iq, add = T) # rajoute les observations individuelles
+abline(v = mean(DF$iq), col = "blue", lwd = 2) # plot la moyenne
+```
+
+## Conditions d'application
+
+1) Outlier : le boxplot précédent nous montre qu'il n'y a pas d'outlier ou de données impossibles
+
+2) Normalité de la distribution de la variable
+
+On réapplique le même code que pour les corrélations
+
+```{r}
+# histogramme des fréquences
+hist(DF$iq,breaks = 12)
+# histogramme de densité sur la variable centrée-réduite
+hist(scale(DF$iq),prob=T);curve(dnorm(x),add=T)
+# test de Shapiro Wilk
+shapiro.test(DF$iq)
+# test de kolmogorov-smirnov
+ks.test(scale(DF$iq),"pnorm",mean=0,sd=1)
+```
+
+La condition de normalité est ambigue (c'est souvent le cas !). On utilisera donc aussi, plus tard, un test non-paramétrique robuste au non-respect de cette condition d'application.
+
+## Stat inférentielles
+
+```{r}
+t.test(x= DF$iq, mu = 100)
+```
+
+Selon le test t la moyenne de notre échantillon est significativement différente de 100. Cela veut dire que si notre échantillon venait d'une population où le QI = 100, ou aurait moins de 5% de chances d'observé un QI moyen au moins aussi extrême.
+
+
+à noter que dans échantillon la moyenne n'est pas forcément le meilleur indicateur de tendance centrale, car les données ne sont pas parfaitement bien distribuée. L'utilisation de la médiane pourrait dans ce cas être plus appropriée. 
+
+Le test de Wilcoxon nous permet de tester si notre médiane est significativement différente de 100.
+```{r}
+wilcox.test(x= DF$iq, mu = 100)
+```
+
+Cette fois ci le résultat n'est pas significatif. On ne peut pas généraliser le fait que le QI de notre échantillon soit différent de 100 à la population.
+
+CONCLUSION : 
+On conclue que le QI de la population échantillonnée ici est différent de 100. On peut spéculer sur les raisons de ce résultat (ex : ce sont des étudiants possiblement issus d'un niveau socio-économique élevé).
+
+
+# test t pour échantillon appariés
+
+est-ce que la verticale subjective (vs) change entre t1 et t2 ?
+On est ici intéressé par le changement de vs entre t1 et t2 ; on va donc simplement créer une nouvelle variable correspondant à ce changement
+
+```{r}
+DF$vs_change = DF$vs_t2 - DF$vs_t1 # attention c'est t2 - t1 qu'il faut calculer, et non pas t1 - t2
+```
+
+Maintenant on répète les mêmes étapes que précédemment pour les échantillons uniques.
+
+## Stat descriptives
+
+```{r}
+# indice de tendances centrales (moyenne et médiane)
+summary(DF$vs_change)
+# indice de dispersion
+sd(DF$vs_change)
+quantile(x = DF$vs_change, probs = c(0.25, 0.75))
+# graphique
+boxplot(DF$vs_change, horizontal = T)
+graphics::stripchart(DF$vs_change, add = T) # rajoute les observations individuelles
+abline(v = mean(DF$vs_change), col = "blue", lwd = 2) # plot la moyenne
+```
+
+Cette fois ci on aimerait bien aussi représenter graphiquement les données t1 et t2. Dans l'idéal, on aimerait voir les données appartenant au même participant. C'est possible mais le code est plus complexe :
+ 
+```{r}
+stripchart(x = DF$vs_t1, # données à t1
+           at = 1, # coordonnées en y
+           ylim = c(0.5,2.5), # limites de l'axe y
+           xlim = c(min(DF[,c("vs_t1", "vs_t2")]),
+                    max(DF[,c("vs_t1", "vs_t2")])), # limites de l'axe x
+           xlab = "verticale subjective (deg)",
+           ylab = "temps",
+           pch = 1, col = "blue") # forme des points
+stripchart(x = DF$vs_t2, at = 2, add = T,
+           pch = 1, col = "red")
+axis(2, # 2 = axe y ; 1 = axe x
+     at = c(1,2), # coordonnées
+     labels = c("temps 1", "temps 2") # nom des modalités
+     )
+for(i in 1:nrow(DF)){ # boucle où i = numéro du sujet
+  DF_tmp = DF[i, ] # DF temporaire pour un seul sujet i
+  lines(y = c(1,2), # coordonnées y
+       x = c(DF_tmp$vs_t1,DF_tmp$vs_t2), # coordonnées x
+       col = "grey") # couleur de la ligne
+}
+abline(v = 0, lty = 2, col = "black")
+```
+
+Cet exemple vous montre que plus on customise un plot, plus le code est complexe.
+
+## Conditions d'application
+
+1) Outlier : le boxplot précédent nous montre qu'il y a un outlier. Un sujet a un changement de vs de plus de -20° !
+
+2) Normalité de la distribution de la variable
+
+```{r}
+# histogramme des fréquences
+hist(DF$vs_change,breaks = 12)
+# histogramme de densité sur la variable centrée-réduite
+hist(scale(DF$vs_change),prob=T);curve(dnorm(x),add=T)
+# test de Shapiro Wilk
+shapiro.test(DF$vs_change)
+# test de kolmogorov-smirnov
+ks.test(scale(DF$vs_change),"pnorm",mean=0,sd=1)
+```
+
+La condition de normalité est respectée, mais celle des outliers non. On utilisera donc aussi un test non-paramétrique.
+
+
+## Stat inférentielles
+
+```{r}
+t.test(x= DF$vs_change, mu = 0)
+wilcox.test(x= DF$vs_change, mu = 0)
+```
+
+Les p valeurs des deux tests, paramétrique (t-test) et non paramétrique (wilcoxon) concordent. L'évolution de la vs entre t1 et t2 n'est pas significative, on ne rejette pas H0.
+
+NB : il est tout de même possible d'effectuer un t-test pour échantillons appariés sur des données au format long. Dans un tel format nous avons une VI qui s'appellera "time" (modalités : vs_t1 et vs_t2) et une VD qui s'appellera "angle" (angle de la verticale subjective).
+
+Pour donner un exemple, il faut que l'on recode notre DF du format COURT vers un format LONG.
+Pour cela on utilise la fonction reshape. Attention, c'est une fonction compliquée, avec beaucoup d'arguments. De plus elle ne fonctionne que sur des DATA.FRAME, PAS SUR DES TIBBLES.
+
+Pour un excellent tuto : https://rstudio-pubs-static.s3.amazonaws.com/594650_88973f23f57c4d60b346abe0bc38801b.html
+
+
+```{r}
+str(DF) # notre DF est un TIBBLE, on va donc le changer en DATA.FRAME
+DF = data.frame(DF)
+
+# maintenant on peut utiliser la fonction reshape, disponible dans le paquet stats, pré-installé dans R.
+
+DF_long = 
+stats::reshape(data = DF, # notre DF
+               direction = "long", # indique que l'on veut que la VI "temps" (vs_t1, vs_t2) soit en format long, au lieu d'un format court.
+               varying = c("vs_t1","vs_t2"), # les modalités de la VI
+               v.names = "angle") # le nom de la VD
+
+DF_long
+```
+
+Maintenant on peut lancer un t.test ou un wilcoxon test sur ce DF, en modifiant un peu notre syntaxe :
+
+```{r}
+t.test(formula = angle ~ time, data = DF_long, paired = T)
+wilcox.test(formula = angle ~ time, data = DF_long, paired = T)
+```
+
+Nous constatons que les p-valeurs sont les mêmes.
+
+# test t pour échantillons indépendants
+
+Q? : différence de verticale subjective moyenne entre les étudiants de psycho et philo ?  
+
+## Stat descriptives
+
+Premièrement nous ne sommes pas intéressés ici par l'effet du temps sur la vs. Nous allons donc moyenner vs_t1 et vs_t2
+
+```{r}
+DF$vs_moy = (DF$vs_t1 + DF$vs_t2)/2 
+```
+
+Pour extraire les indices de tendance centrale et de dispersion pour chaque groupe de la VI "field", nous utilisons la fonction *aggregate*, une fonction très pratique.
+
+```{r}
+stats::aggregate(x = vs_moy ~ field, data = DF, FUN = summary)
+stats::aggregate(x = vs_moy ~ field, data = DF, FUN = sd)
+```
+
+Le code permettant de générer le graphique est plus simple qu'avant:
+
+```{r}
+boxplot(vs_moy ~ field, # formule : vs moyenne "prédit par" field
+        data = DF,
+        boxwex = 0.25) # largeur des boxplots
+
+stripchart(vs_moy ~ field, # rajoute les points
+           data = DF,
+           pch = 1, # forme des points
+           vertical = T, # orientation de l'axe y
+           add = T) # pour ne pas effacer les boxplots
+
+points(aggregate(x = vs_moy ~ field, data = DF, FUN = mean), # plot les moyennes
+       cex = 1.5, # taille
+       pch = 21, # forme des points (le 21 est un rond avec un fond colorable)
+       bg = c("red", "green")) # background (bg) des points
+```
+
+## Conditions d'application
+
+1) Outlier : le boxplot précédent nous montre qu'il y a un outlier dans le groupe de philo. La moyenne est clairement tirée vers la bas (par rapport à la médiane) dans ce groupe.
+
+2) Normalité des distributions des variables, pour chaque groupe.
+
+```{r}
+# le plus simple est de séparer notre DF par groupe
+DF_psycho = DF[DF$field == "psycho",]
+DF_philo = DF[DF$field == "philo",]
+
+hist(scale(DF_psycho$vs_moy), prob = T)
+curve(dnorm(x), add = T)
+shapiro.test(DF_psycho$vs_moy)
+
+hist(scale(DF_philo$vs_moy), prob = T)
+curve(dnorm(x), add = T)
+shapiro.test(DF_philo$vs_moy)
+```
+
+Sans surprise, la conditon de normalité n'est pas remplie pour philo, à cause de l'outlier.
+
+3) Homogénéité des variances
+
+```{r}
+stats::aggregate(x = vs_moy ~ field, data = DF, FUN = sd)
+```
+
+Les écarts types sont à peu près égaux. Même si ça n'était pas le cas ça ne serait pas grave car R corrige la p-valeur par défaut dans le t.test.
+
+Comme nous avons un outlier nous allons comme d'habitude réaliser à la fois un test paramétrique et non-paramétrique.
+
+## Stat inférentielles
+
+```{r}
+t.test(vs_moy ~ field, DF) # teste une différence de moyenne
+wilcox.test(vs_moy ~ field, DF) # teste une différence de médiane
+```
+
+Quelque soit le test une différence émerge entre les groupes de philo et de psycho en termes de vs moyenne.
+
+
